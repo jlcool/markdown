@@ -671,12 +671,39 @@ class StrikethroughSyntax extends TagSyntax {
     var runLength = match.group(0).length;
     var matchStart = parser.pos;
     var matchEnd = parser.pos + runLength - 1;
+    var openingRunLength = state.endPos - state.startPos;
     var delimiterRun = _DelimiterRun.tryParse(parser, matchStart, matchEnd);
     if (!delimiterRun.isRightFlanking) {
       return false;
     }
 
-    parser.addNode(Element('del', state.children));
+    if (openingRunLength == 1 && runLength == 1) {
+      parser.addNode(Element('u', state.children));
+    } else if (openingRunLength == 1 && runLength > 1) {
+      parser.addNode(Element('u', state.children));
+      parser.pos = parser.pos - (runLength - 1);
+      parser.start = parser.pos;
+    } else if (openingRunLength > 1 && runLength == 1) {
+      parser.openTag(
+          TagState(state.startPos, state.endPos - 1, this, delimiterRun));
+      parser.addNode(Element('u', state.children));
+    } else if (openingRunLength == 2 && runLength == 2) {
+      parser.addNode(Element('del', state.children));
+    } else if (openingRunLength == 2 && runLength > 2) {
+      parser.addNode(Element('del', state.children));
+      parser.pos = parser.pos - (runLength - 2);
+      parser.start = parser.pos;
+    } else if (openingRunLength > 2 && runLength == 2) {
+      parser.openTag(
+          TagState(state.startPos, state.endPos - 2, this, delimiterRun));
+      parser.addNode(Element('del', state.children));
+    } else if (openingRunLength > 2 && runLength > 2) {
+      parser.openTag(
+          TagState(state.startPos, state.endPos - 2, this, delimiterRun));
+      parser.addNode(Element('del', state.children));
+      parser.pos = parser.pos - (runLength - 2);
+      parser.start = parser.pos;
+    }
     return true;
   }
 }
